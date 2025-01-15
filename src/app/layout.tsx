@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Minimal Docs Site",
-  description: "A gorgeous minimal documentation site using Next.js App Router",
+  title: "Company Docs Site",
+  description: "A great starter documentation site built for companies and products",
 };
 
 export default function RootLayout({
