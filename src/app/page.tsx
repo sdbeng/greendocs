@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { useWebSocket } from '@/hooks/use-websocket'
 
 export const metadata: Metadata = {
   title: 'Introduction | Docs Site',
@@ -6,6 +7,8 @@ export const metadata: Metadata = {
 }
 
 export default function Home() {
+  const { status } = useWebSocket()
+
   return (
     <main className="mx-auto max-w-3xl">
       <h1 className="mb-6 text-4xl font-bold">Welcome to Our Docs</h1>
@@ -51,6 +54,14 @@ export default function Home() {
         have suggestions for improvement, please open an issue or submit a pull
         request on our GitHub repository.
       </p>
+      <div className="mt-4 flex items-center gap-2">
+        <div className={`h-2 w-2 rounded-full ${
+          status === 'connected' ? 'bg-green-500' : 'bg-red-500'
+        }`} />
+        <span className="text-sm text-muted-foreground">
+          {status === 'connected' ? 'Connected to server' : 'Disconnected'}
+        </span>
+      </div>
     </main>
   );
 }
