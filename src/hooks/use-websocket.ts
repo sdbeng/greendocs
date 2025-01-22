@@ -2,17 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
-// interface WebSocketMessage {
-//   type: string
-//   payload: unknown
-// }
-
 interface TradeSignal {
   symbol: string
   action: 'BUY' | 'SELL'
   price: number
   confidence: number
   timestamp: number
+  volume?: number    // Optional volume
+  trend?: string     // Optional trend
 }
 
 interface SubscriptionResponse {
@@ -20,28 +17,45 @@ interface SubscriptionResponse {
   total?: number
 }
 
-// Update the WebSocketMessage type to be more specific
-interface WebSocketResponse {
-  type: 'signal' | 'subscribed' | 'unsubscribed' | 'error'
-  payload: TradeSignal | SubscriptionResponse | string
+// Make the response type more specific
+type WebSocketResponse = 
+  | { type: 'signal'; payload: TradeSignal }
+  | { type: 'subscribed'; payload: SubscriptionResponse }
+  | { type: 'unsubscribed'; payload: SubscriptionResponse }
+  | { type: 'error'; payload: string }
+
+interface WebSocketState {
+  status: 'connected' | 'disconnected' | 'connecting'
+  signals: TradeSignal[]
+  subscriptions: string[]
+  error: string | null
+  isLoading: boolean
 }
 
 export function useWebSocket() {
   const [socket, setSocket] = useState<WebSocket | null>(null)
-  const [status, setStatus] = useState('disconnected')
-  const [signals, setSignals] = useState<TradeSignal[]>([])
-  const [subscriptions, setSubscriptions] = useState<string[]>([])
+  const [state, setState] = useState<WebSocketState>({
+    status: 'connecting',
+    signals: [],
+    subscriptions: [],
+    error: null,
+    isLoading: false
+  })
 
   useEffect(() => {
     const ws = new WebSocket('ws://localhost:8080')
 
     ws.onopen = () => {
-      setStatus('connected')
+      setState(prev => ({ ...prev, status: 'connected', error: null }))
       setSocket(ws)
     }
 
     ws.onclose = () => {
-      setStatus('disconnected')
+      setState(prev => ({ 
+        ...prev, 
+        status: 'disconnected',
+        error: 'Connection lost. Attempting to reconnect...'
+      }))
       setSocket(null)
     }
 
@@ -50,22 +64,41 @@ export function useWebSocket() {
       
       switch (message.type) {
         case 'signal':
-          if (isTradeSignal(message.payload)) {
-            setSignals(prev => [...prev, message.payload])
-          }
+          setState(prev => ({
+            ...prev,
+            signals: [...prev.signals, message.payload]
+          }))
           break
+          
         case 'subscribed':
+          setState(prev => ({
+            ...prev,
+            subscriptions: [...new Set([...prev.subscriptions, ...message.payload.symbols])]
+          }))
+          break
+          
         case 'unsubscribed':
-          if (isSubscriptionResponse(message.payload)) {
-            const { symbols } = message.payload
-            setSubscriptions(prev => 
-              message.type === 'subscribed'
-                ? [...new Set([...prev, ...symbols])]
-                : prev.filter(s => !symbols.includes(s))
-            )
-          }
+          setState(prev => ({
+            ...prev,
+            subscriptions: prev.subscriptions.filter(s => !message.payload.symbols.includes(s))
+          }))
+          break
+          
+        case 'error':
+          setState(prev => ({
+            ...prev,
+            error: message.payload
+          }))
           break
       }
+    }
+
+    ws.onerror = (event) => {
+      setState(prev => ({ 
+        ...prev, 
+        error: 'WebSocket error occurred. Please try again later.'
+      }))
+      console.error('WebSocket error:', event)
     }
 
     return () => {
@@ -73,39 +106,24 @@ export function useWebSocket() {
     }
   }, [])
 
-  // Type guard functions
-  function isTradeSignal(payload: unknown): payload is TradeSignal {
-    return (
-      typeof payload === 'object' &&
-      payload !== null &&
-      'symbol' in payload &&
-      'action' in payload &&
-      'price' in payload &&
-      'confidence' in payload &&
-      'timestamp' in payload
-    )
-  }
-
-  function isSubscriptionResponse(payload: unknown): payload is SubscriptionResponse {
-    return (
-      typeof payload === 'object' &&
-      payload !== null &&
-      'symbols' in payload &&
-      Array.isArray((payload as SubscriptionResponse).symbols)
-    )
-  }
-
   const subscribe = useCallback((symbols: string[]) => {
-    if (socket) {
+    if (socket?.readyState === WebSocket.OPEN) {
+      setState(prev => ({ ...prev, isLoading: true }))
       socket.send(JSON.stringify({
         type: 'subscribe',
         payload: { symbols }
+      }))
+    } else {
+      setState(prev => ({
+        ...prev,
+        error: 'Cannot subscribe: WebSocket is not connected'
       }))
     }
   }, [socket])
 
   const unsubscribe = useCallback((symbols: string[]) => {
-    if (socket) {
+    if (socket?.readyState === WebSocket.OPEN) {
+      setState(prev => ({ ...prev, isLoading: true }))
       socket.send(JSON.stringify({
         type: 'unsubscribe',
         payload: { symbols }
@@ -114,9 +132,11 @@ export function useWebSocket() {
   }, [socket])
 
   return {
-    status,
-    signals,
-    subscriptions,
+    status: state.status,
+    signals: state.signals,
+    subscriptions: state.subscriptions,
+    error: state.error,
+    isLoading: state.isLoading,
     subscribe,
     unsubscribe
   }
