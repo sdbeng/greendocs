@@ -1,45 +1,145 @@
 'use client';
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
-interface WebSocketState {
-  status: 'connected' | 'disconnected'
-  sendMessage: (message: unknown) => void
+interface TradeSignal {
+  symbol: string
+  action: 'BUY' | 'SELL'
+  price: number
+  confidence: number
+  timestamp: number
+  volume?: number    // Optional volume
+  trend?: string     // Optional trend
 }
 
-export function useWebSocket(): WebSocketState {
-  const [ws, setWs] = useState<WebSocket | null>(null)
-  const [status, setStatus] = useState<'connected' | 'disconnected'>('disconnected')
+interface SubscriptionResponse {
+  symbols: string[]
+  total?: number
+}
+
+// Make the response type more specific
+type WebSocketResponse = 
+  | { type: 'signal'; payload: TradeSignal }
+  | { type: 'subscribed'; payload: SubscriptionResponse }
+  | { type: 'unsubscribed'; payload: SubscriptionResponse }
+  | { type: 'error'; payload: string }
+
+interface WebSocketState {
+  status: 'connected' | 'disconnected' | 'connecting'
+  signals: TradeSignal[]
+  subscriptions: string[]
+  error: string | null
+  isLoading: boolean
+}
+
+export function useWebSocket() {
+  const [socket, setSocket] = useState<WebSocket | null>(null)
+  const [state, setState] = useState<WebSocketState>({
+    status: 'connecting',
+    signals: [],
+    subscriptions: [],
+    error: null,
+    isLoading: false
+  })
 
   useEffect(() => {
-    const wsInstance = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080')
+    const ws = new WebSocket('ws://localhost:8080')
 
-    wsInstance.onopen = () => {
-      setStatus('connected')
+    ws.onopen = () => {
+      setState(prev => ({ ...prev, status: 'connected', error: null }))
+      setSocket(ws)
     }
 
-    wsInstance.onclose = () => {
-      setStatus('disconnected')
+    ws.onclose = () => {
+      setState(prev => ({ 
+        ...prev, 
+        status: 'disconnected',
+        error: 'Connection lost. Attempting to reconnect...'
+      }))
+      setSocket(null)
     }
 
-    wsInstance.onerror = () => {
-      setStatus('disconnected')
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data) as WebSocketResponse
+      
+      switch (message.type) {
+        case 'signal':
+          setState(prev => ({
+            ...prev,
+            signals: [...prev.signals, message.payload]
+          }))
+          break
+          
+        case 'subscribed':
+          setState(prev => ({
+            ...prev,
+            subscriptions: [...new Set([...prev.subscriptions, ...message.payload.symbols])]
+          }))
+          break
+          
+        case 'unsubscribed':
+          setState(prev => ({
+            ...prev,
+            subscriptions: prev.subscriptions.filter(s => !message.payload.symbols.includes(s))
+          }))
+          break
+          
+        case 'error':
+          setState(prev => ({
+            ...prev,
+            error: message.payload
+          }))
+          break
+      }
     }
 
-    setWs(wsInstance)
+    ws.onerror = (event) => {
+      setState(prev => ({ 
+        ...prev, 
+        error: 'WebSocket error occurred. Please try again later.'
+      }))
+      console.error('WebSocket error:', event)
+    }
 
     return () => {
-      wsInstance.close()
+      ws.close()
     }
   }, [])
 
-  const sendMessage = (message: unknown) => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message))
+  const subscribe = useCallback((symbols: string[]) => {
+    if (socket?.readyState === WebSocket.OPEN) {
+      setState(prev => ({ ...prev, isLoading: true }))
+      socket.send(JSON.stringify({
+        type: 'subscribe',
+        payload: { symbols }
+      }))
+    } else {
+      setState(prev => ({
+        ...prev,
+        error: 'Cannot subscribe: WebSocket is not connected'
+      }))
     }
-  }
+  }, [socket])
 
-  return { status, sendMessage }
+  const unsubscribe = useCallback((symbols: string[]) => {
+    if (socket?.readyState === WebSocket.OPEN) {
+      setState(prev => ({ ...prev, isLoading: true }))
+      socket.send(JSON.stringify({
+        type: 'unsubscribe',
+        payload: { symbols }
+      }))
+    }
+  }, [socket])
+
+  return {
+    status: state.status,
+    signals: state.signals,
+    subscriptions: state.subscriptions,
+    error: state.error,
+    isLoading: state.isLoading,
+    subscribe,
+    unsubscribe
+  }
 }
 
 export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080'; 

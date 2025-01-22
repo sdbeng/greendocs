@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import HomePage from '@/app/components/HomePage'
+import HomePage from '@/components/HomePage'
 
 export const metadata: Metadata = {
   title: 'Introduction | Docs Site',
