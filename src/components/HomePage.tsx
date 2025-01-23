@@ -24,8 +24,7 @@ export default function HomePage() {
     <main className="mx-auto max-w-3xl">      
       <h1 className="mb-6 text-4xl font-bold">Welcome to Our Docs</h1>
       <p className="mb-4">
-        This is a gorgeous minimal documentation site built with Next.js,
-        Tailwind CSS, and shadcn/ui components.
+        This is the documentation site for the Real time Trading and Signals Project.
       </p>
 
       {/* Trading Signals Section */}
@@ -170,12 +169,13 @@ export default function HomePage() {
       {/* Rest of your existing content */}
       <h2 className="mb-4 mt-8 text-2xl font-semibold">Features</h2>
       <ul className="mb-4 list-inside list-disc space-y-1">
-        <li>Clean and minimal design</li>
-        <li>Dark mode support</li>
+        <li>Simple, clean design</li>
+        <li>Dark mode support-wip</li>
         <li>Responsive layout</li>
         <li>Easy navigation with shadcn sidebar</li>
-        <li>Built with Next.js App Router</li>
+        <li>Built with Next.js v15 and App Router</li>
         <li>Real-time trading signals</li>
+        <li>Webhook trading signals syncd with mongodb db server</li>
       </ul>
       
       {/* ... rest of your existing JSX ... */}
