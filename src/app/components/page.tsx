@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Components | Minimal Docs Site',
+  title: 'Real Time Trading | Docs Site',
   description: 'Explore the components available in our library',
 }
 

@@ -1,8 +1,8 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Getting Started | Minimal Docs Site',
-  description: 'Learn how to get started with our documentation',
+  title: 'Real Time Trading | Docs Site',
+  description: 'Getting started with Real time Trading and Signals documentation site',
 }
 
 export default function GettingStarted() {
@@ -18,7 +18,7 @@ export default function GettingStarted() {
         To install our package, run the following command in your terminal:
       </p>
       <pre className="bg-muted p-4 rounded-md mb-4">
-        <code>npm install @our-company/package</code>
+        <code>npm install @realtime-v2/package</code>
       </pre>
       <h2 className="text-2xl font-semibold mt-8 mb-4">Configuration</h2>
       <p className="mb-4">
@@ -40,7 +40,7 @@ export default function GettingStarted() {
         <code>{`import { Client } from '@our-company/package';
 
 const client = new Client();
-const result = await client.doSomething();
+const result = await client.Subscribe();
 console.log(result);`}</code>
       </pre>
       <p className="mt-4">
