@@ -22,7 +22,7 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto max-w-3xl">      
-      <h1 className="mb-6 text-4xl font-bold">Welcome to Our Docs</h1>
+      <h1 className="mb-6 text-4xl font-bold">Welcome to Real-Time Trading Docs</h1>
       <p className="mb-4">
         This is the documentation site for the Real time Trading and Signals Project.
       </p>
