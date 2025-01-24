@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'API Reference | Real Time Docs Site',
@@ -30,7 +31,7 @@ export default function ApiReference() {
       <h3 className="text-xl font-semibold mt-6 mb-2">Methods</h3>
       <h4 className="text-lg font-semibold mt-4 mb-2">Subscribe()</h4>
       <pre className="bg-muted p-4 rounded-md mb-4">
-        <code>{`async Susbcribe(): Promise<Result>`}</code>
+        <code>{`async Subscribe(): Promise<Result>`}</code>
       </pre>
       <p className="mb-4">Performs an action and returns a result.</p>
       <h4 className="text-lg font-semibold mt-4 mb-2">Returns</h4>
@@ -53,7 +54,7 @@ export default function ApiReference() {
       </pre>
       <p className="mt-4">
         For more detailed information about specific components and their props,
-        please refer to the Components section.
+        please refer to the <Link href="/components" className='text-sky-600'>Components</Link> section.
       </p>
     </main>
   )
